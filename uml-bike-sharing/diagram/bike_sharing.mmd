@@ -1,0 +1,86 @@
+---
+config:
+  layout: elk
+---
+classDiagram
+    direction TB
+
+    class Network {
+        -income : int
+        +take_bike(rider, station, now) Ride
+        +return_bike(rider, station, now) Ride
+        +report()
+        -best_station() Station
+    }
+
+    class Station {
+        -name : str
+        +capacity : int
+        +free_dock_count : int
+        +dock_bike(bike) Dock
+        +take_bike() Bike
+        +send_to_repair(bike_id)
+        +finish_repair(bike_id)
+    }
+
+    class Dock {
+        -number : int
+        +is_free : bool
+        +has_available_bike : bool
+        +park(bike)
+        +take_bike() Bike
+    }
+
+    class Bike {
+        -id : int
+        -status : BikeStatus
+        +can_be_taken : bool
+        +on_docked()
+        +on_taken()
+        +send_to_repair()
+        +finish_repair()
+    }
+
+    class Rider {
+        -name : str
+        +ensure_no_active_ride()
+        +start_ride(ride)
+        +end_ride()
+    }
+
+    class Ride {
+        +start_time : datetime
+        +end_time : datetime
+        +failed_returns : int
+        +is_active : bool
+        +add_failed_return() int
+        +check_end_time(end_time)
+        +finish(station, end_time)
+        +duration_minutes() int
+        +fee() int
+    }
+
+    class ReceiptPrinter {
+        +text(ride) str
+        +print(ride)
+    }
+
+    note for Bike "status is AVAILABLE, IN_USE or REPAIR"
+
+    %% associations
+    Rider "1" -- "0..1" Ride : active ride
+    Ride "0..*" -- "1" Bike : uses
+    Dock "0..1" -- "0..1" Bike : holds
+    Ride "0..*" -- "1" Station : starts at
+    Ride "0..*" -- "0..1" Station : ends at
+    Network "1" -- "1" ReceiptPrinter : prints with
+    %% aggregation: stations are made outside and live on without the network
+    Network "1" o-- "1..*" Station : has
+    %% composition: the network creates and keeps every ride
+    Network "1" *-- "0..*" Ride : records
+    %% composition: docks die with their station
+    Station "1" *-- "1..*" Dock : has
+    %% dependencies: the other class comes only as a parameter
+    Network "1" ..> "0..*" Rider : serves
+    Station "1" ..> "0..*" Bike : takes in or gives
+    ReceiptPrinter "1" ..> "0..*" Ride : formats
